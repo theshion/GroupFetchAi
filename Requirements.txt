@@ -1,0 +1,4 @@
+pyrogram==2.0.106
+pyro==1.2.0
+telethon==1.24.0
+asyncio==3.4.3
