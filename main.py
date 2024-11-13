@@ -12,3 +12,6 @@ bot.add_handler(handlers.handle_all_messages)
 # Run the bot
 if __name__ == "__main__":
     bot.run()
+print("Bot is starting...")
+bot.run()
+print("Bot has started.")
