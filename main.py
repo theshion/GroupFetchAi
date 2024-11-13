@@ -1,17 +1,13 @@
-from pyrogram import Client
-import handlers
-import config
+from handlers import bot
+import logging
 
-# Initialize the bot client
-bot = Client("my_bot", api_id=config.API_ID, api_hash=config.API_HASH, bot_token=config.BOT_TOKEN)
+# Logging setup for better debugging
+logging.basicConfig(level=logging.INFO)
 
-# Register handlers
-bot.add_handler(handlers.start_message)
-bot.add_handler(handlers.handle_all_messages)
-
-# Run the bot
 if __name__ == "__main__":
-    bot.run()
-print("Bot is starting...")
-bot.run()
-print("Bot has started.")
+    try:
+        print("Bot is starting...")  # Print when the bot starts
+        bot.polling(none_stop=True, interval=0)  # Start the bot with polling
+        print("Bot is running...")  # Print once the bot starts running
+    except Exception as e:
+        print(f"An error occurred: {e}")  # Print if an error occurs
