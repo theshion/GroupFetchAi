@@ -1,156 +1,76 @@
-from pyrogram import Client, enums, filters
-from pyrogram.errors import SessionPasswordNeeded, PhoneCodeInvalid, UserDeactivated
-from pyrogram.types import Chat, Message
+from pyrogram import Client, filters
+from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
 from datetime import datetime
-import asyncio
+from telethon.sync import TelegramClient
+from telethon.sessions import StringSession
 import config
 
-# Pyrogram client setup
-bot = Client("my_bot", api_id=config.API_ID, api_hash=config.API_HASH, bot_token=config.BOT_TOKEN)
-
+# Dictionary to store session data temporarily
 sessions = {}
-check_with_sessions = {}
 
-# Create buttons for bot
+# Function to create inline buttons using Pyrogram
 def create_buttons():
-    markup = types.ReplyKeyboardMarkup(resize_keyboard=True)
-    start_check = types.KeyboardButton("Start Check")
-    add_session = types.KeyboardButton("Add Session")
-    show_sessions = types.KeyboardButton("Show Sessions")
-    show_time = types.KeyboardButton("Current Time")
-    programmer = types.KeyboardButton("Programmer")
-    programmer_channel = types.KeyboardButton("Programmer's Channel")
-    bot_info = types.KeyboardButton("Bot Info")
-    markup.add(start_check)
-    markup.add(add_session, show_sessions, show_time)
-    markup.add(bot_info)
-    markup.add(programmer, programmer_channel)
-    return markup
+    return InlineKeyboardMarkup([
+        [InlineKeyboardButton("Start Check", callback_data="start_check")],
+        [InlineKeyboardButton("Add Session", callback_data="add_session")],
+        [InlineKeyboardButton("Show Sessions", callback_data="show_sessions")],
+        [InlineKeyboardButton("Current Time", callback_data="current_time")],
+        [InlineKeyboardButton("Programmer", callback_data="programmer")],
+        [InlineKeyboardButton("Programmer's Channel", callback_data="programmer_channel")],
+        [InlineKeyboardButton("Bot Info", callback_data="bot_info")]
+    ])
 
-# Start command handler
-@bot.on_message(filters.command("start"))
-def start_message(client, message):
-    bot.send_video(
-        message.chat.id,
+# Start Message
+@Client.on_message(filters.command("start"))
+async def start_message(client, message):
+    await message.reply_video(
         "https://t.me/yyyyyy3w/31",
         caption="""
-Welcome to the bot for retrieving *your deleted groups*. Send commands now.
+Welcome to the bot for retrieving *your deleted groups*. 
 Bot programmer: [Sofi](t.me/M02MM)
         """,
-        parse_mode="Markdown",
+        parse_mode="markdown",
         reply_markup=create_buttons()
     )
 
-# Handle all other messages
-@bot.on_message(filters.text)
-def handle_all_messages(client, message):
-    text = message.text
-    user_id = message.from_user.id
+# Callback Handler
+@Client.on_callback_query()
+async def handle_callback_query(client, callback_query):
+    user_id = callback_query.from_user.id
+    data = callback_query.data
 
-    if text == "Start Check":
-        bot.send_message(message.chat.id, "Checking groups...")
-        asyncio.run(check_groups(message))
-    elif text == "Programmer":
-        bot.send_message(message.chat.id, "- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode="Markdown", disable_web_page_preview=True)
-    elif text == "Programmer's Channel":
-        bot.send_message(message.chat.id, "- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode="Markdown", disable_web_page_preview=True)
-    elif text == "Bot Info":
-        bot.send_message(message.chat.id, "The bot is simple, no extra info needed. Enjoy!")
-    elif text == "Add Session":
-        bot.send_message(message.chat.id, "Send the *Pyrogram* session now", parse_mode="Markdown")
+    if data == "start_check":
+        await callback_query.message.reply("Checking groups... 🔍")
+        await check_groups(callback_query)
+    elif data == "add_session":
         sessions[user_id] = "add"
-    elif text == "Show Sessions":
-        saved_session = data.get(f"session_{user_id}")
-        if saved_session:
-            bot.send_message(message.chat.id, saved_session)
-        else:
-            bot.send_message(message.chat.id, "No session added!")
-    elif user_id in sessions and sessions[user_id] == "add":
-        session_data = message.text
-        try:
-            asyncio.run(check_session(message, user_id, session_data))
-        except Exception:
-            bot.send_message(message.chat.id, "Session expired ❌")
-        del sessions[user_id]
-    elif text == "Current Time":
+        await callback_query.message.reply("Send me your session data now.")
+    elif data == "show_sessions":
+        session_data = sessions.get(user_id)
+        await callback_query.message.reply(session_data or "No session added!")
+    elif data == "current_time":
         current_time = datetime.now().strftime("%I:%M:%S")
-        bot.send_message(message.chat.id, f"*- Current time is:* `{current_time}`", parse_mode="Markdown")
+        await callback_query.message.reply(f"*- Current time:* `{current_time}`", parse_mode="markdown")
+    elif data == "programmer":
+        await callback_query.message.reply("Programmer: [Sofi](t.me/M02MM)", disable_web_page_preview=True)
+    elif data == "programmer_channel":
+        await callback_query.message.reply("Channel: [Python Tools](t.me/uiujq)", disable_web_page_preview=True)
+    elif data == "bot_info":
+        await callback_query.message.reply("This bot helps retrieve group data. Enjoy!")
 
-# Session verification and storage function
-async def check_session(message, user_id, session_data):
+# Function for Group Check
+async def check_groups(callback_query):
+    user_id = callback_query.from_user.id
+    session_data = sessions.get(user_id)
+
+    if not session_data:
+        await callback_query.message.reply("No session available!")
+        return
+
     try:
-        # Creating Pyrogram client
-        async with bot:
-            client = Client("session", session_string=session_data, api_id=config.API_ID, api_hash=config.API_HASH)
-            await client.connect()
-
-            # Check if user is authorized
-            if not await client.is_user_authorized():
-                raise Exception("Session expired ❌")
-            
-            # Store session if valid
-            data.set(f"session_{user_id}", session_data)
-            bot.send_message(message.chat.id, "Session saved ✅")
-            check_with_sessions[user_id] = session_data
-            await client.disconnect()
-
-    except (SessionPasswordNeeded, PhoneCodeInvalid, UserDeactivated):
-        bot.send_message(message.chat.id, "Session expired ❌")
+        async with TelegramClient(StringSession(session_data), config.API_ID, config.API_HASH) as client:
+            async for dialog in client.iter_dialogs():
+                if dialog.is_group:
+                    await callback_query.message.reply(f"Group: {dialog.title}")
     except Exception as e:
-        bot.send_message(message.chat.id, f"Session expired ❌. Error: {str(e)}")
-
-# Group checking function
-async def check_groups(message):
-    user_id = message.from_user.id
-    try:
-        session_data = check_with_sessions[user_id]
-    except KeyError:
-        bot.send_message(message.chat.id, "No session added!")
-        return
-
-    if session_data:
-        bot.send_message(message.chat.id, "Checking...")
-        try:
-            # Using the stored session
-            async with bot:
-                client = Client("session", session_string=session_data, api_id=config.API_ID, api_hash=config.API_HASH)
-                await client.connect()
-
-                if not await client.is_user_authorized():
-                    raise Exception("Session expired ❌")
-        except (SessionPasswordNeeded, PhoneCodeInvalid, UserDeactivated):
-            bot.send_message(message.chat.id, "Session expired ❌")
-        except Exception:
-            bot.send_message(message.chat.id, "Session expired ❌")
-    else:
-        bot.send_message(message.chat.id, "No session added!")
-        return
-
-    # Checking for groups and extracting details
-    async for dialog in client.get_dialogs():
-        try:
-            if isinstance(dialog.chat, Chat) and dialog.chat.type == "supergroup":  # Checking for groups
-                group_id = dialog.chat.id
-                group_name = dialog.chat.title
-                group_username = dialog.chat.username or "None"  # Handling if username is None
-                group_creation_date = dialog.chat.date
-                formatted_date = group_creation_date.strftime('%Y/%m/%d')  # Formatting creation date
-
-                # Fetching member count
-                members_count = await client.get_chat_members_count(group_id)
-
-                # Sending group details
-                bot.send_message(
-                    message.chat.id, 
-                    f"""
-                    - Group Name: {group_name}
-                    - Group Username: @{group_username}
-                    - Group ID: {group_id}
-                    - Member Count: {members_count}
-                    - Creation Date: {formatted_date}
-                    """,
-                    disable_web_page_preview=True
-                )
-        except Exception as e:
-            print(f"Error while processing group: {e}")
-
+        await callback_query.message.reply(f"An error occurred: {str(e)}")
