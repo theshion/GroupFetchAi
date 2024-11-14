@@ -11,17 +11,24 @@ bot = Client("bot_session", api_id=API_ID, api_hash=API_HASH, bot_token=BOT_TOKE
 # Database for storing sessions
 data = Database("session_data.bot")
 
-# Define dynamic reply buttons
+# Full reply buttons
 def create_buttons():
     return ReplyKeyboardMarkup(
-        [["Start Check", "Add Session", "Show Sessions"], ["Bot Info", "Current Time"]],
+        [["Start Check", "Add Session", "Show Sessions"],
+         ["Current Time", "Bot Info", "Programmer"],
+         ["Programmer's Channel"]],
         resize_keyboard=True
     )
 
 @bot.on_message(filters.command("start"))
 async def start(client, message: Message):
-    await message.reply(
-        "Welcome! Use the buttons below to interact.",
+    await message.reply_video(
+        "https://t.me/yyyyyy3w/31",
+        caption="""
+Welcome to the bot for retrieving *your deleted groups*. Send commands now.
+Bot programmer: [Sofi](t.me/M02MM)
+        """,
+        parse_mode="Markdown",
         reply_markup=create_buttons()
     )
 
@@ -29,7 +36,7 @@ async def start(client, message: Message):
 async def handle_text(client, message: Message):
     user_id = message.from_user.id
     text = message.text
-    
+
     if text == "Start Check":
         await message.reply("Checking your groups...")
         await check_groups(client, user_id, message)
@@ -39,6 +46,12 @@ async def handle_text(client, message: Message):
     elif text == "Show Sessions":
         session_string = data.get(f"session_{user_id}")
         await message.reply(f"Your session: {session_string if session_string else 'No session saved.'}")
+    elif text == "Programmer":
+        await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode="Markdown")
+    elif text == "Programmer's Channel":
+        await message.reply("- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode="Markdown")
+    elif text == "Bot Info":
+        await message.reply("This bot retrieves your group data and simplifies access.")
     elif data.get(f"session_status_{user_id}") == "waiting":
         await verify_session(user_id, text, message)
         data.delete(f"session_status_{user_id}")
