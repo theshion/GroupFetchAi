@@ -5,10 +5,8 @@ from telethon.sync import TelegramClient
 from telethon.sessions import StringSession
 import config
 
-# Dictionary to store session data temporarily
 sessions = {}
 
-# Function to create inline buttons using Pyrogram
 def create_buttons():
     return InlineKeyboardMarkup([
         [InlineKeyboardButton("Start Check", callback_data="start_check")],
@@ -20,7 +18,6 @@ def create_buttons():
         [InlineKeyboardButton("Bot Info", callback_data="bot_info")]
     ])
 
-# Start Message
 @Client.on_message(filters.command("start"))
 async def start_message(client, message):
     await message.reply_video(
@@ -33,7 +30,6 @@ Bot programmer: [Sofi](t.me/M02MM)
         reply_markup=create_buttons()
     )
 
-# Callback Handler
 @Client.on_callback_query()
 async def handle_callback_query(client, callback_query):
     user_id = callback_query.from_user.id
@@ -58,7 +54,6 @@ async def handle_callback_query(client, callback_query):
     elif data == "bot_info":
         await callback_query.message.reply("This bot helps retrieve group data. Enjoy!")
 
-# Function for Group Check
 async def check_groups(callback_query):
     user_id = callback_query.from_user.id
     session_data = sessions.get(user_id)
