@@ -1,71 +1,116 @@
-from pyrogram import Client, filters
-from pyrogram.types import InlineKeyboardMarkup, InlineKeyboardButton
+from pyrogram import Client, enums, filters
+from pyrogram.types import ReplyKeyboardMarkup, Message
+from pyrogram.errors import SessionPasswordNeeded, AuthKeyUnregistered
+from pyrogram.enums import ParseMode
+from kvsqlite.sync import Client as Database
 from datetime import datetime
-from telethon.sync import TelegramClient
-from telethon.sessions import StringSession
-import config
+from config import API_ID, API_HASH, BOT_TOKEN  # Import from config
 
+# Initialize bot
+bot = Client("my_bot", bot_token=BOT_TOKEN, api_id=API_ID, api_hash=API_HASH)
+
+# Database to store sessions
+data = Database("session_data.bot")
+
+# In-memory session management
 sessions = {}
+check_with_sessions = {}
 
+# Create bot reply buttons
 def create_buttons():
-    return InlineKeyboardMarkup([
-        [InlineKeyboardButton("Start Check", callback_data="start_check")],
-        [InlineKeyboardButton("Add Session", callback_data="add_session")],
-        [InlineKeyboardButton("Show Sessions", callback_data="show_sessions")],
-        [InlineKeyboardButton("Current Time", callback_data="current_time")],
-        [InlineKeyboardButton("Programmer", callback_data="programmer")],
-        [InlineKeyboardButton("Programmer's Channel", callback_data="programmer_channel")],
-        [InlineKeyboardButton("Bot Info", callback_data="bot_info")]
-    ])
+    return ReplyKeyboardMarkup(
+        [["Start Check", "Add Session", "Show Sessions"],
+         ["Current Time", "Bot Info", "Programmer"],
+         ["Programmer's Channel"]],
+        resize_keyboard=True
+    )
 
-@Client.on_message(filters.command("start"))
-async def start_message(client, message):
+@bot.on_message(filters.command("start"))
+async def start_message(client, message: Message):
     await message.reply_video(
         "https://t.me/yyyyyy3w/31",
         caption="""
-Welcome to the bot for retrieving *your deleted groups*. 
+Welcome to the bot for retrieving *your deleted groups*. Send commands now.
 Bot programmer: [Sofi](t.me/M02MM)
         """,
-        parse_mode="markdown",
+        parse_mode=ParseMode.MARKDOWN,
         reply_markup=create_buttons()
     )
 
-@Client.on_callback_query()
-async def handle_callback_query(client, callback_query):
-    user_id = callback_query.from_user.id
-    data = callback_query.data
+@bot.on_message(filters.text)
+async def handle_all_messages(client, message: Message):
+    text = message.text
+    user_id = message.from_user.id
 
-    if data == "start_check":
-        await callback_query.message.reply("Checking groups... 🔍")
-        await check_groups(callback_query)
-    elif data == "add_session":
+    if text == "Start Check":
+        await message.reply("Initiating group check...")
+        await check_groups(client, message)
+    elif text == "Programmer":
+        await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode=ParseMode.MARKDOWN)
+    elif text == "Programmer's Channel":
+        await message.reply("- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode=ParseMode.MARKDOWN)
+    elif text == "Bot Info":
+        await message.reply("This bot retrieves your group data and simplifies access.")
+    elif text == "Add Session":
+        await message.reply("Send the *Pyrogram* session string now.", parse_mode=ParseMode.MARKDOWN)
         sessions[user_id] = "add"
-        await callback_query.message.reply("Send me your session data now.")
-    elif data == "show_sessions":
-        session_data = sessions.get(user_id)
-        await callback_query.message.reply(session_data or "No session added!")
-    elif data == "current_time":
+    elif text == "Show Sessions":
+        saved_session = data.get(f"session_{user_id}")
+        if saved_session:
+            await message.reply(f"Your session:\n{saved_session}")
+        else:
+            await message.reply("No session found!")
+    elif user_id in sessions and sessions[user_id] == "add":
+        session_data = message.text.strip()
+        await message.reply("Verifying session...")
+        await check_session(client, message, user_id, session_data)
+        del sessions[user_id]
+    elif text == "Current Time":
         current_time = datetime.now().strftime("%I:%M:%S")
-        await callback_query.message.reply(f"*- Current time:* `{current_time}`", parse_mode="markdown")
-    elif data == "programmer":
-        await callback_query.message.reply("Programmer: [Sofi](t.me/M02MM)", disable_web_page_preview=True)
-    elif data == "programmer_channel":
-        await callback_query.message.reply("Channel: [Python Tools](t.me/uiujq)", disable_web_page_preview=True)
-    elif data == "bot_info":
-        await callback_query.message.reply("This bot helps retrieve group data. Enjoy!")
+        await message.reply(f"*- Current time is:* `{current_time}`", parse_mode=ParseMode.MARKDOWN)
 
-async def check_groups(callback_query):
-    user_id = callback_query.from_user.id
-    session_data = sessions.get(user_id)
+async def check_session(client, message, user_id, session_data):
+    try:
+        user_client = Client("user_session", session_string=session_data, api_id=API_ID, api_hash=API_HASH)
+        await user_client.start()
 
+        me = await user_client.get_me()
+        data.set(f"session_{user_id}", session_data)
+        check_with_sessions[user_id] = session_data
+        await message.reply(f"Session saved ✅\nWelcome, {me.first_name}!")
+        await user_client.stop()
+    except (AuthKeyUnregistered, SessionPasswordNeeded):
+        await message.reply("Session expired or invalid ❌")
+
+async def check_groups(client, message: Message):
+    user_id = message.from_user.id
+    session_data = check_with_sessions.get(user_id) or data.get(f"session_{user_id}")
+    
     if not session_data:
-        await callback_query.message.reply("No session available!")
+        await message.reply("No session added!")
         return
 
     try:
-        async with TelegramClient(StringSession(session_data), config.API_ID, config.API_HASH) as client:
-            async for dialog in client.iter_dialogs():
-                if dialog.is_group:
-                    await callback_query.message.reply(f"Group: {dialog.title}")
+        user_client = Client("group_checker", session_string=session_data, api_id=API_ID, api_hash=API_HASH)
+        await user_client.start()
+
+        async for dialog in user_client.get_dialogs():
+            if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
+                group = dialog.chat
+                try:
+                    invite_link = await user_client.export_chat_invite_link(group.id)
+                    members_count = await user_client.get_chat_members_count(group.id)
+                    await message.reply(f"""
+Group Name: {group.title}
+Group Link: {invite_link}
+Members: {members_count}
+""")
+                except Exception as e:
+                    await message.reply(f"Error in {group.title}: {e}")
+
+        await user_client.stop()
     except Exception as e:
-        await callback_query.message.reply(f"An error occurred: {str(e)}")
+        await message.reply(f"Failed checking groups: {str(e)}")
+
+# Run the bot
+bot.run()
