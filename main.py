@@ -1,13 +1,18 @@
-from handlers import bot
-import logging
+from pyrogram import Client
+import handlers  # This will register handlers without needing `bot`
 
-# Logging setup for better debugging
-logging.basicConfig(level=logging.INFO)
+# Import configuration
+from config import API_ID, API_HASH, BOT_TOKEN
 
-if __name__ == "__main__":
-    try:
-        print("Bot is starting...")  # Print when the bot starts
-        bot.run()  # Use run() method instead of polling
-        print("Bot is running...")  # Print once the bot starts running
-    except Exception as e:
-        print(f"An error occurred: {e}")  # Print if an error occurs
+# Initialize Pyrogram Client
+app = Client(
+    "GroupFetchAi",
+    api_id=API_ID,
+    api_hash=API_HASH,
+    bot_token=BOT_TOKEN
+)
+
+print("Bot is starting...")
+
+# Start the bot
+app.run()
