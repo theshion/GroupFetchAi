@@ -45,7 +45,7 @@ async def handle_all_messages(client, message: Message):
 
     if text == "Start Check":
         await message.reply("Initiating group check...")
-        await check_groups(client, message)
+        await check_left_groups(client, message)
     elif text == "Programmer":
         await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode=ParseMode.MARKDOWN)
     elif text == "Programmer's Channel":
@@ -83,8 +83,7 @@ async def check_session(client, message, user_id, session_data):
     except (AuthKeyUnregistered, SessionPasswordNeeded):
         await message.reply("Session expired or invalid ❌")
 
-
-async def check_groups(client, message: Message):
+async def check_left_groups(client, message: Message):
     user_id = message.from_user.id
     session_data = check_with_sessions.get(user_id) or data.get(f"session_{user_id}")
     
@@ -97,26 +96,25 @@ async def check_groups(client, message: Message):
         await user_client.start()
 
         async for dialog in user_client.get_dialogs():
-            if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
-                group = dialog.chat
+            c = dialog.chat
+            # Check if it's a group or supergroup and the user has left the group
+            if c.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP] and not c.is_member:
                 try:
-                    # Check if the user is the owner of the group
-                    member = await user_client.get_chat_member(group.id, user_client.me.id)
-                    if member.status == enums.ChatMemberStatus.OWNER:
-                        # Only attempt to export invite link for owned groups
-                        invite_link = await user_client.export_chat_invite_link(group.id)
-                        members_count = await user_client.get_chat_members_count(group.id)
-                        await message.reply(f"""
-Group Name: {group.title}
-Group Link: {invite_link}
-Members: {members_count}
-""")
+                    # Attempt to export the invite link
+                    if c.username:
+                        link = f"https://t.me/{c.username}"
                     else:
-                        await message.reply(f"Not the owner of group {group.title}. Skipping.")
+                        link = (await user_client.get_chat(c.id)).invite_link
+                    
+                    # Send group info to the user
+                    await message.reply(f"""
+Group Name: {c.title}
+Group Link: {link}
+""")
                 except ChatAdminRequired:
-                    await message.reply(f"Error in {group.title}: Bot needs admin privileges to export invite link.")
+                    await message.reply(f"Error in {c.title}: Bot needs admin privileges to export invite link.")
                 except Exception as e:
-                    await message.reply(f"Error in {group.title}: {e}")
+                    await message.reply(f"Error in {c.title}: {e}")
 
         await user_client.stop()
     except Exception as e:
