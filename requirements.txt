@@ -3,3 +3,4 @@ tgcrypto==1.2.5
 kvsqlite==1.3.3
 asyncio==3.4.3
 python-dotenv==1.0.1
+aiogram==2.25.1
