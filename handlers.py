@@ -98,6 +98,7 @@ async def check_groups(client, message: Message):
             if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
                 group = dialog.chat
                 try:
+                    # Attempt to export the invite link
                     invite_link = await user_client.export_chat_invite_link(group.id)
                     members_count = await user_client.get_chat_members_count(group.id)
                     await message.reply(f"""
@@ -106,7 +107,10 @@ Group Link: {invite_link}
 Members: {members_count}
 """)
                 except Exception as e:
-                    await message.reply(f"Error in {group.title}: {e}")
+                    if isinstance(e, pyrogram.errors.ChatAdminRequired):
+                        await message.reply(f"Error in {group.title}: Bot needs admin privileges to export invite link.")
+                    else:
+                        await message.reply(f"Error in {group.title}: {e}")
 
         await user_client.stop()
     except Exception as e:
