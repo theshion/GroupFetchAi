@@ -45,9 +45,8 @@ async def handle_all_messages(client, message: Message):
         await message.reply("Initiating group check...")
         await check_left_groups(client, message)
     elif text == "Programmer":
-        await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode="Markdown")
-    elif text == "Programmer's Channel":
-        await message.reply("- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode="Markdown")
+        await message.reply("- Bot Programmer: [Shion](t.me/DeityEmperor)", parse_mode="markdown")
+await message.reply("- Programmer's Channel: [Python Tools](t.me/coding)", parse_mode="markdown")
     elif text == "Bot Info":
         await message.reply("This bot retrieves your group data and simplifies access.")
     elif text == "Add Session":
@@ -66,7 +65,7 @@ async def handle_all_messages(client, message: Message):
         del sessions[user_id]
     elif text == "Current Time":
         current_time = datetime.now().strftime("%I:%M:%S")
-        await message.reply(f"*- Current time is:* `{current_time}`", parse_mode="Markdown")
+        await message.reply(f"*- Current time is:* {current_time}", parse_mode="markdown")
 
 async def check_session(client, message, user_id, session_data):
     try:
