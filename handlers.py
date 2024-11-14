@@ -2,6 +2,7 @@ from pyrogram import Client, enums, filters
 from pyrogram.types import ReplyKeyboardMarkup, Message
 from pyrogram.errors import SessionPasswordNeeded, AuthKeyUnregistered
 from pyrogram.enums import ParseMode
+from pyrogram.errors import ChatAdminRequired
 from kvsqlite.sync import Client as Database
 from datetime import datetime
 from config import API_ID, API_HASH, BOT_TOKEN  # Import from config
@@ -82,6 +83,7 @@ async def check_session(client, message, user_id, session_data):
     except (AuthKeyUnregistered, SessionPasswordNeeded):
         await message.reply("Session expired or invalid ❌")
 
+
 async def check_groups(client, message: Message):
     user_id = message.from_user.id
     session_data = check_with_sessions.get(user_id) or data.get(f"session_{user_id}")
@@ -106,15 +108,13 @@ Group Name: {group.title}
 Group Link: {invite_link}
 Members: {members_count}
 """)
+                except ChatAdminRequired:
+                    await message.reply(f"Error in {group.title}: Bot needs admin privileges to export invite link.")
                 except Exception as e:
-                    if isinstance(e, pyrogram.errors.ChatAdminRequired):
-                        await message.reply(f"Error in {group.title}: Bot needs admin privileges to export invite link.")
-                    else:
-                        await message.reply(f"Error in {group.title}: {e}")
+                    await message.reply(f"Error in {group.title}: {e}")
 
         await user_client.stop()
     except Exception as e:
         await message.reply(f"Failed checking groups: {str(e)}")
-
 # Run the bot
 bot.run()
