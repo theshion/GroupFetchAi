@@ -1,7 +1,6 @@
 from pyrogram import Client, enums, filters
 from pyrogram.types import ReplyKeyboardMarkup, Message
-from pyrogram.errors import SessionPasswordNeeded, AuthKeyUnregistered
-from pyrogram.errors import ChatAdminRequired
+from pyrogram.errors import SessionPasswordNeeded, AuthKeyUnregistered, ChatAdminRequired
 from kvsqlite.sync import Client as Database
 from datetime import datetime
 from config import API_ID, API_HASH, BOT_TOKEN  # Import from config
@@ -98,17 +97,10 @@ async def check_left_groups(client, message: Message):
 
         async for dialog in user_client.get_dialogs():
             c = dialog.chat
-            # Check if the user is the creator (owner) of the group
             if c.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP] and c.is_creator:
-                groups_found = True  # Found at least one group owned by the user
+                groups_found = True
                 try:
-                    # Attempt to export the invite link
-                    if c.username:
-                        link = f"https://t.me/{c.username}"
-                    else:
-                        link = (await user_client.get_chat(c.id)).invite_link
-                    
-                    # Send group info to the user
+                    link = f"https://t.me/{c.username}" if c.username else (await user_client.get_chat(c.id)).invite_link
                     await message.reply(f"""
 Group Name: {c.title}
 Group Link: {link}
