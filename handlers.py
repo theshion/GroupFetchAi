@@ -15,37 +15,31 @@ data = Database("session_data.bot")
 sessions = {}
 check_with_sessions = {}
 
-# Configurable video link
-INTRO_VIDEO = "https://t.me/yyyyyy3w/31"
-
 # Create bot reply buttons
 def create_buttons():
     return ReplyKeyboardMarkup(
-        keyboard=[
-            ["Start Check", "Add Session", "Show Sessions"],
-            ["Current Time", "Bot Info", "Programmer"],
-            ["Programmer's Channel"]
-        ],
+        [["Start Check", "Add Session", "Show Sessions"],
+         ["Current Time", "Bot Info", "Programmer"],
+         ["Programmer's Channel"]],
         resize_keyboard=True
     )
 
-# Start command handler
 @bot.on_message(filters.command("start"))
 async def start_message(client, message: Message):
     await message.reply_video(
-        INTRO_VIDEO,
-        caption="""Welcome to the bot for retrieving *your deleted groups*. Send commands now.
-Bot programmer: [Sofi](t.me/M02MM)""",
-        parse_mode="Markdown",
+        "https://t.me/yyyyyy3w/31",
+        caption="""
+Welcome to the bot for retrieving *your deleted groups*. Send commands now.
+Bot programmer: [Sofi](t.me/M02MM)
+        """,
+        parse_mode="Markdown",  # Correct parse_mode
         reply_markup=create_buttons()
     )
 
-# General message handler
 @bot.on_message(filters.text & ~filters.command())
 async def handle_all_messages(client, message: Message):
-    if message.text.startswith("/"):
-        return  # Ignore commands entirely if you add filters
-    # Proceed other cases, all the main business here
+    text = message.text
+    user_id = message.from_user.id
 
     if text == "Start Check":
         await message.reply("Initiating group check...")
@@ -71,10 +65,9 @@ async def handle_all_messages(client, message: Message):
         await check_session(client, message, user_id, session_data)
         del sessions[user_id]
     elif text == "Current Time":
-        current_time = datetime.now().strftime("%I:%M:%S %p")
+        current_time = datetime.now().strftime("%I:%M:%S")
         await message.reply(f"*- Current time is:* `{current_time}`", parse_mode="Markdown")
 
-# Session verification and saving
 async def check_session(client, message, user_id, session_data):
     try:
         user_client = Client("user_session", session_string=session_data, api_id=API_ID, api_hash=API_HASH)
@@ -87,14 +80,11 @@ async def check_session(client, message, user_id, session_data):
         await user_client.stop()
     except (AuthKeyUnregistered, SessionPasswordNeeded):
         await message.reply("Session expired or invalid ❌")
-    except Exception as e:
-        await message.reply(f"An unexpected error occurred: {str(e)}")
 
-# Check left groups owned by user
 async def check_left_groups(client, message: Message):
     user_id = message.from_user.id
     session_data = check_with_sessions.get(user_id) or data.get(f"session_{user_id}")
-
+    
     if not session_data:
         await message.reply("No session added!")
         return
@@ -111,11 +101,14 @@ async def check_left_groups(client, message: Message):
                 groups_found = True
                 try:
                     link = f"https://t.me/{c.username}" if c.username else (await user_client.get_chat(c.id)).invite_link
-                    await message.reply(f"**Group Name:** {c.title}\n**Group Link:** {link}", parse_mode="Markdown")
+                    await message.reply(f"""
+Group Name: {c.title}
+Group Link: {link}
+""")
                 except ChatAdminRequired:
                     await message.reply(f"Error in {c.title}: Bot needs admin privileges to export invite link.")
                 except Exception as e:
-                    await message.reply(f"Error in {c.title}: {str(e)}")
+                    await message.reply(f"Error in {c.title}: {e}")
 
         if not groups_found:
             await message.reply("User does not own any group.")
