@@ -51,7 +51,7 @@ async def handle_all_messages(client, message: Message):
     elif text == "Bot Info":
         await message.reply("This bot retrieves your group data and simplifies access.")
     elif text == "Add Session":
-        await message.reply("Send the *Pyrogram* session string now.", parse_mode="MARKDOWN")
+        await message.reply("Send the *Pyrogram* session string now.", parse_mode="markdown")
         sessions[user_id] = "add"
     elif text == "Show Sessions":
         saved_session = data.get(f"session_{user_id}")
