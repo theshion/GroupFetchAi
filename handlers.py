@@ -43,9 +43,9 @@ Bot programmer: [Sofi](t.me/M02MM)""",
 # General message handler
 @bot.on_message(filters.text & ~filters.command())
 async def handle_all_messages(client, message: Message):
-    # Your logic here
-    text = message.text
-    user_id = message.from_user.id
+    if message.text.startswith("/"):
+        return  # Ignore commands entirely if you add filters
+    # Proceed other cases, all the main business here
 
     if text == "Start Check":
         await message.reply("Initiating group check...")
