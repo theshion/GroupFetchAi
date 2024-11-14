@@ -45,10 +45,12 @@ async def handle_all_messages(client, message: Message):
         await message.reply("Initiating group check...")
         await check_left_groups(client, message)
     elif text == "Programmer":
-        await message.reply("- Bot Programmer: [Shion](t.me/DeityEmperor)", parse_mode="markdown")
-await message.reply("- Programmer's Channel: [Python Tools](t.me/coding)", parse_mode="markdown")
+        await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode="markdown")
+    elif text == "Programmer's Channel":
+        await message.reply("- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode="markdown")
     elif text == "Bot Info":
         await message.reply("This bot retrieves your group data and simplifies access.")
+    # Ensure the next lines are properly indented as well
     elif text == "Add Session":
         await message.reply("Send the *Pyrogram* session string now.", parse_mode="Markdown")
         sessions[user_id] = "add"
