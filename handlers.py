@@ -100,14 +100,19 @@ async def check_groups(client, message: Message):
             if dialog.chat.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP]:
                 group = dialog.chat
                 try:
-                    # Attempt to export the invite link
-                    invite_link = await user_client.export_chat_invite_link(group.id)
-                    members_count = await user_client.get_chat_members_count(group.id)
-                    await message.reply(f"""
+                    # Check if the user is the owner of the group
+                    member = await user_client.get_chat_member(group.id, user_client.me.id)
+                    if member.status == enums.ChatMemberStatus.OWNER:
+                        # Only attempt to export invite link for owned groups
+                        invite_link = await user_client.export_chat_invite_link(group.id)
+                        members_count = await user_client.get_chat_members_count(group.id)
+                        await message.reply(f"""
 Group Name: {group.title}
 Group Link: {invite_link}
 Members: {members_count}
 """)
+                    else:
+                        await message.reply(f"Not the owner of group {group.title}. Skipping.")
                 except ChatAdminRequired:
                     await message.reply(f"Error in {group.title}: Bot needs admin privileges to export invite link.")
                 except Exception as e:
@@ -116,5 +121,6 @@ Members: {members_count}
         await user_client.stop()
     except Exception as e:
         await message.reply(f"Failed checking groups: {str(e)}")
+
 # Run the bot
 bot.run()
