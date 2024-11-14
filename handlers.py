@@ -32,7 +32,7 @@ async def start_message(client, message: Message):
 Welcome to the bot for retrieving *your deleted groups*. Send commands now.
 Bot programmer: [Sofi](t.me/M02MM)
         """,
-        parse_mode="MARKDOWN",
+        parse_mode="Markdown",  # Correct parse_mode
         reply_markup=create_buttons()
     )
 
@@ -45,13 +45,13 @@ async def handle_all_messages(client, message: Message):
         await message.reply("Initiating group check...")
         await check_left_groups(client, message)
     elif text == "Programmer":
-        await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode="MARKDOWN")
+        await message.reply("- Bot Programmer: [Sofi](t.me/M02MM)", parse_mode="Markdown")
     elif text == "Programmer's Channel":
-        await message.reply("- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode="MARKDOWN")
+        await message.reply("- Programmer's Channel: [Python Tools](t.me/uiujq)", parse_mode="Markdown")
     elif text == "Bot Info":
         await message.reply("This bot retrieves your group data and simplifies access.")
     elif text == "Add Session":
-        await message.reply("Send the *Pyrogram* session string now.", parse_mode="markdown")
+        await message.reply("Send the *Pyrogram* session string now.", parse_mode="Markdown")
         sessions[user_id] = "add"
     elif text == "Show Sessions":
         saved_session = data.get(f"session_{user_id}")
@@ -66,7 +66,7 @@ async def handle_all_messages(client, message: Message):
         del sessions[user_id]
     elif text == "Current Time":
         current_time = datetime.now().strftime("%I:%M:%S")
-        await message.reply(f"*- Current time is:* `{current_time}`", parse_mode="MARKDOWN")
+        await message.reply(f"*- Current time is:* `{current_time}`", parse_mode="Markdown")
 
 async def check_session(client, message, user_id, session_data):
     try:
