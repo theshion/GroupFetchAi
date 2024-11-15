@@ -101,7 +101,7 @@ async def check_left_groups(client, message: Message):
                 groups_found = True
                 try:
                     # Fetch the group's creation date from its first message
-                    first_message = await user_client.get_history(c.id, limit=1)
+                    first_message = await user_client.get_chat_history(c.id, limit=1)
                     creation_date = first_message[0].date if first_message else "Unknown"
 
                     # Get the group invite link
