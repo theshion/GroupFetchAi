@@ -101,12 +101,15 @@ async def check_left_groups(client, message: Message):
                 groups_found = True
                 try:
                     # Fetch the group's creation date from its first message
-                    first_message = await user_client.get_history(c.id, limit=1)
-                    creation_date = first_message[0].date if first_message else "Unknown"
+                    async for message in user_client.get_chat_history(c.id, limit=1, reverse=True):
+                        creation_date = message.date
+                        break
+                    else:
+                        creation_date = "Unknown"
 
                     # Get the group invite link
                     invite_link = c.username or (await user_client.export_chat_invite_link(c.id))
-                    
+
                     await message.reply(f"""
 - Group Name: {c.title}
 - Group Username: @{c.username if c.username else "N/A"}
@@ -127,6 +130,3 @@ async def check_left_groups(client, message: Message):
         await user_client.stop()
     except Exception as e:
         await message.reply(f"Failed checking groups: {str(e)}")
-
-# Run the bot
-bot.run()
