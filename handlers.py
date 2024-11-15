@@ -100,22 +100,14 @@ async def check_left_groups(client, message: Message):
             if c.type in [enums.ChatType.GROUP, enums.ChatType.SUPERGROUP] and c.is_creator:
                 groups_found = True
                 try:
-                    # Fetch the group's creation date from its first message
-                    async for message in user_client.get_chat_history(c.id, limit=1, reverse=True):
-                        creation_date = message.date
-                        break
-                    else:
-                        creation_date = "Unknown"
-
                     # Get the group invite link
-                    invite_link = c.username or (await user_client.export_chat_invite_link(c.id))
-
+                    invite_link = f"https://t.me/{c.username}" if c.username else await user_client.export_chat_invite_link(c.id)
+                    
                     await message.reply(f"""
 - Group Name: {c.title}
 - Group Username: @{c.username if c.username else "N/A"}
 - Group ID: {c.id}
 - Member Count: {c.members_count if hasattr(c, 'members_count') else 'Unknown'}
-- Creation Date: {creation_date.strftime('%Y-%m-%d %H:%M:%S') if creation_date != "Unknown" else "Unknown"}
 - Group Link: {invite_link}
 - Bot Programmer: @M02MM
 """)
@@ -130,3 +122,6 @@ async def check_left_groups(client, message: Message):
         await user_client.stop()
     except Exception as e:
         await message.reply(f"Failed checking groups: {str(e)}")
+
+# Run the bot
+bot.run()
